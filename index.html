@@ -1,0 +1,1199 @@
+// ========== KONFIGURASI ==========
+const WHATSAPP_COWO = "6282294418076"; // Nomor WA Kaos Kaki Cowo
+const WHATSAPP_CEWE = "6282183282955"; // Nomor WA Kaos Kaki Cewe
+const SHEET_NAME = "Produk";
+
+function doGet() {
+  return HtmlService.createHtmlOutput(getHTML())
+    .setTitle('KaosKakiKu - Lhokseumawe')
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+}
+
+// Ambil data produk yang ready
+function getProdukReady() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(SHEET_NAME);
+  
+  if (!sheet) {
+    throw new Error('Sheet "Produk" tidak ditemukan. Pastikan nama sheet benar!');
+  }
+  
+  const data = sheet.getDataRange().getValues();
+  const produk = [];
+  
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][6] === "ready" && data[i][3] > 0) {
+      produk.push({
+        id: data[i][0],
+        nama: data[i][1],
+        harga: data[i][2],
+        stok: data[i][3],
+        gambar: data[i][4],
+        deskripsi: data[i][5],
+        kategori: data[i][7] || "cowo",
+        primadona: data[i][8] || false
+      });
+    }
+  }
+  
+  return produk;
+}
+
+// Generate link WhatsApp berdasarkan kategori
+// Generate link WhatsApp berdasarkan kategori
+function getWhatsAppLink(orderData) {
+  const items = orderData.items;
+  const pengiriman = orderData.pengiriman;
+  const pembayaran = orderData.pembayaran;
+  const alamat = orderData.alamat || '';
+  
+  // Tentukan nomor WA berdasarkan kategori
+  let waNumber = WHATSAPP_COWO;
+  let namaKategori = "COWO/HITAM";
+  
+  const semuaCewe = items.every(item => item.kategori === "cewe");
+  
+  if (semuaCewe && items.length > 0) {
+    waNumber = WHATSAPP_CEWE;
+    namaKategori = "CEWE";
+  }
+  
+  let message = `🛒 *ORDER KAOS KAKI ${namaKategori}*\n`;
+  message += `📍 KaosKakiKu - Lhokseumawe\n\n`;
+  
+  message += `📦 *DETAIL PESANAN:*\n`;
+  items.forEach((item, index) => {
+    message += `${index + 1}. ${item.nama}\n`;
+    message += `   Kategori: ${item.kategori.toUpperCase()}\n`;
+    message += `   Jumlah: ${item.qty} pcs\n`;
+    message += `   Harga: Rp ${item.harga.toLocaleString()}\n`;
+    message += `   Subtotal: Rp ${(item.harga * item.qty).toLocaleString()}\n\n`;
+  });
+  
+  const total = items.reduce((sum, item) => sum + (item.harga * item.qty), 0);
+  message += `💰 *TOTAL: Rp ${total.toLocaleString()}*\n\n`;
+  
+  message += `🚚 *PENGIRIMAN:* ${pengiriman}\n`;
+  if (pengiriman === 'Antar' && alamat) {
+    message += `📍 *Alamat:* ${alamat}\n\n`;
+  } else {
+    message += `\n`;
+  }
+  
+  // Hanya tampilkan info pembayaran kalau pilih "Antar"
+  if (pengiriman === 'Antar') {
+    message += `💳 *PEMBAYARAN:* ${pembayaran}\n\n`;
+    
+    if (pembayaran === 'Transfer BSI') {
+      message += `*TRANSFER KE:*\n`;
+      message += `🏦 Bank BSI\n`;
+      message += `👤 A.n Dava Nabila\n`;
+      message += `💳 7343207772\n\n`;
+    } else if (pembayaran === 'DANA') {
+      message += `*TRANSFER KE:*\n`;
+      message += `💰 DANA\n`;
+      message += `👤 A.n Aulia Zikfa\n`;
+      message += `📱 082294418076\n\n`;
+    }
+    
+    message += `📸 *Mohon kirim bukti transfer ya!* 🙏`;
+  } else {
+    message += `💵 *Pembayaran: Cash saat ambil*`;
+  }
+  
+  const encodedMessage = encodeURIComponent(message);
+  return `https://wa.me/${waNumber}?text=${encodedMessage}`;
+}
+
+// HTML Template
+function getHTML() {
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🧦 KaosKakiKu - Lhokseumawe</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'VT323', monospace;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background-attachment: fixed;
+      padding-bottom: 20px;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: 
+        linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
+      background-size: 30px 30px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 15px;
+      position: relative;
+      z-index: 1;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 25px;
+      background: linear-gradient(135deg, #ff6b9d 0%, #ffa07a 100%);
+      padding: 25px 15px;
+      border-radius: 15px;
+      box-shadow: 
+        0 8px 25px rgba(0,0,0,0.3),
+        inset 0 0 20px rgba(255,255,255,0.2);
+      border: 3px solid #fff;
+      position: relative;
+      overflow: hidden;
+    }
+
+    header::before {
+      content: '🧦🧦🧦';
+      position: absolute;
+      top: 8px;
+      left: 0;
+      width: 100%;
+      font-size: 20px;
+      opacity: 0.3;
+      animation: float 3s ease-in-out infinite;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-8px); }
+    }
+
+    header h1 {
+      font-family: 'Press Start 2P', cursive;
+      color: #fff;
+      margin-bottom: 10px;
+      font-size: 20px;
+      text-shadow: 
+        3px 3px 0px #ff1493,
+        6px 6px 0px rgba(0,0,0,0.3);
+      animation: glow 2s ease-in-out infinite alternate;
+    }
+
+    @keyframes glow {
+      from { text-shadow: 3px 3px 0px #ff1493, 6px 6px 0px rgba(0,0,0,0.3); }
+      to { text-shadow: 3px 3px 0px #00ff00, 6px 6px 0px rgba(0,0,0,0.3), 0 0 15px #ff1493; }
+    }
+
+    header p {
+      color: #fff;
+      font-size: 20px;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+    }
+
+    .primadona-section {
+      margin-bottom: 30px;
+    }
+
+    .primadona-title {
+      font-family: 'Press Start 2P', cursive;
+      font-size: 18px;
+      color: #fff;
+      text-align: center;
+      margin-bottom: 20px;
+      text-shadow: 
+        3px 3px 0px #ff1493,
+        0 0 20px #ff1493;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+
+    .primadona-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 15px;
+      margin-bottom: 25px;
+    }
+
+    .filter-buttons {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 25px;
+      flex-wrap: wrap;
+    }
+
+    .filter-btn {
+      padding: 12px 20px;
+      background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+      border: 3px solid #ff69b4;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 18px;
+      font-family: 'Press Start 2P', cursive;
+      color: #333;
+      transition: all 0.3s;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      text-shadow: 1px 1px 0px #fff;
+    }
+
+    .filter-btn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 6px 15px rgba(255,105,180,0.5);
+    }
+
+    .filter-btn.active {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      color: #fff;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+      transform: scale(1.1);
+    }
+
+    .produk-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .produk-card {
+      background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 
+        0 6px 15px rgba(0,0,0,0.3),
+        inset 0 0 10px rgba(255,255,255,0.3);
+      border: 3px solid #ff69b4;
+      transition: all 0.3s;
+      position: relative;
+    }
+
+    .produk-card:hover {
+      transform: translateY(-8px) rotate(1deg);
+      box-shadow: 
+        0 12px 30px rgba(255,105,180,0.5),
+        inset 0 0 15px rgba(255,255,255,0.5);
+    }
+
+    .produk-image {
+      width: 100%;
+      height: 160px;
+      object-fit: cover;
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      border-bottom: 3px solid #ff69b4;
+    }
+
+    .produk-info {
+      padding: 12px;
+      background: #fff;
+    }
+
+    .produk-nama {
+      font-size: 18px;
+      font-weight: bold;
+      margin-bottom: 6px;
+      color: #ff1493;
+      text-shadow: 1px 1px 0px #ffd700;
+    }
+
+    .produk-harga {
+      color: #00ff00;
+      font-size: 20px;
+      font-weight: bold;
+      margin-bottom: 6px;
+      background: #000;
+      padding: 4px 8px;
+      border-radius: 6px;
+      display: inline-block;
+      text-shadow: 0 0 8px #00ff00;
+    }
+
+    .produk-stok {
+      color: #ff6347;
+      font-size: 16px;
+      margin-bottom: 10px;
+      font-weight: bold;
+    }
+
+    .produk-kategori {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: rgba(0,0,0,0.7);
+      color: #fff;
+      padding: 4px 10px;
+      border-radius: 15px;
+      font-size: 14px;
+      font-weight: bold;
+      border: 2px solid #fff;
+    }
+
+    .btn-add {
+      width: 100%;
+      padding: 10px;
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      color: white;
+      border: 2px solid #fff;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: bold;
+      font-family: 'Press Start 2P', cursive;
+      transition: all 0.3s;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      text-shadow: 1px 1px 3px rgba(0,0,0,0.5);
+    }
+
+    .btn-add:hover {
+      transform: scale(1.05);
+      box-shadow: 0 6px 20px rgba(245,87,108,0.6);
+    }
+
+    .cart-badge {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: linear-gradient(135deg, #ff6b9d 0%, #ffa07a 100%);
+      color: white;
+      padding: 15px 18px;
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 
+        0 5px 15px rgba(0,0,0,0.4),
+        inset 0 0 10px rgba(255,255,255,0.3);
+      border: 4px solid #fff;
+      font-size: 20px;
+      z-index: 999;
+      transition: all 0.3s;
+      animation: bounce 2s ease-in-out infinite;
+    }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-12px); }
+    }
+
+    .cart-badge:hover {
+      transform: scale(1.2) rotate(15deg) !important;
+      box-shadow: 0 8px 30px rgba(255,107,157,0.7);
+    }
+
+    #cartCount {
+      background: #00ff00;
+      color: #000;
+      border-radius: 50%;
+      padding: 4px 8px;
+      font-family: 'Press Start 2P', cursive;
+      font-size: 14px;
+      margin-left: 6px;
+      box-shadow: 0 0 8px #00ff00;
+    }
+
+    .cart-sidebar {
+      position: fixed;
+      right: -100%;
+      top: 0;
+      width: 100%;
+      max-width: 400px;
+      height: 100%;
+      background: linear-gradient(180deg, #ffd700 0%, #ff69b4 100%);
+      box-shadow: -4px 0 25px rgba(0,0,0,0.5);
+      transition: right 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+      z-index: 1001;
+      display: flex;
+      flex-direction: column;
+      border-left: 4px solid #fff;
+    }
+
+    .cart-sidebar.active {
+      right: 0;
+    }
+
+    .cart-header {
+      padding: 20px;
+      border-bottom: 3px solid #fff;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(0,0,0,0.2);
+    }
+
+    .cart-header h2 {
+      font-family: 'Press Start 2P', cursive;
+      color: #fff;
+      font-size: 16px;
+      text-shadow: 2px 2px 0px #ff1493;
+    }
+
+    .close-btn {
+      background: #ff1493;
+      border: 2px solid #fff;
+      font-size: 24px;
+      cursor: pointer;
+      color: #fff;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      transition: all 0.3s;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.3);
+    }
+
+    .close-btn:hover {
+      transform: rotate(90deg) scale(1.1);
+      background: #ff69b4;
+    }
+
+    #cartItems {
+      flex: 1;
+      overflow-y: auto;
+      padding: 15px;
+      background: rgba(255,255,255,0.9);
+    }
+
+    .cart-item {
+      padding: 12px;
+      border: 2px solid #ff69b4;
+      margin-bottom: 12px;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.2);
+    }
+
+    .cart-item-name {
+      font-weight: bold;
+      margin-bottom: 6px;
+      font-size: 18px;
+      color: #ff1493;
+    }
+
+    .cart-item-kategori {
+      background: #000;
+      color: #fff;
+      padding: 2px 8px;
+      border-radius: 5px;
+      font-size: 14px;
+      display: inline-block;
+      margin-bottom: 6px;
+    }
+
+    .cart-item-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .qty-btn {
+      width: 35px;
+      height: 35px;
+      border: 2px solid #ff69b4;
+      background: #ffd700;
+      cursor: pointer;
+      border-radius: 6px;
+      font-size: 18px;
+      font-weight: bold;
+      transition: all 0.2s;
+      font-family: 'Press Start 2P', cursive;
+    }
+
+    .qty-btn:hover {
+      background: #ff69b4;
+      color: #fff;
+      transform: scale(1.1);
+    }
+
+    .cart-footer {
+      padding: 20px;
+      border-top: 3px solid #fff;
+      background: rgba(0,0,0,0.2);
+    }
+
+    .checkout-options {
+      margin-bottom: 15px;
+    }
+
+    .option-title {
+      font-family: 'Press Start 2P', cursive;
+      font-size: 12px;
+      color: #fff;
+      margin-bottom: 10px;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+    }
+
+    .option-group {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+
+    .option-btn {
+      flex: 1;
+      min-width: 100px;
+      padding: 10px;
+      background: #fff;
+      border: 2px solid #ff69b4;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: bold;
+      transition: all 0.3s;
+      font-family: 'VT323', monospace;
+      color: #333;
+    }
+
+    .option-btn:hover {
+      background: #ffe4e1;
+      transform: scale(1.05);
+    }
+
+    .option-btn.active {
+      background: #ff69b4;
+      color: #fff;
+      border-color: #fff;
+      box-shadow: 0 0 10px rgba(255,105,180,0.7);
+    }
+
+    .alamat-input {
+      width: 100%;
+      padding: 10px;
+      border: 2px solid #ff69b4;
+      border-radius: 8px;
+      font-size: 16px;
+      font-family: 'VT323', monospace;
+      margin-top: 8px;
+      display: none;
+    }
+
+    .alamat-input.show {
+      display: block;
+    }
+
+    .info-box {
+      background: rgba(255,255,255,0.9);
+      padding: 10px;
+      border-radius: 8px;
+      border: 2px solid #ffd700;
+      margin-top: 10px;
+      font-size: 14px;
+      color: #333;
+      display: none;
+    }
+
+    .info-box.show {
+      display: block;
+    }
+
+    .rekening-box {
+      background: rgba(0,0,0,0.8);
+      color: #fff;
+      padding: 12px;
+      border-radius: 8px;
+      border: 2px solid #ffd700;
+      margin-top: 10px;
+      font-size: 14px;
+      display: none;
+    }
+
+    .rekening-box.show {
+      display: block;
+    }
+
+    .rekening-box strong {
+      color: #ffd700;
+    }
+
+    .total {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 15px;
+      font-size: 20px;
+      color: #fff;
+      font-family: 'Press Start 2P', cursive;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+    }
+
+    .btn-checkout {
+      width: 100%;
+      padding: 15px;
+      background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
+      color: white;
+      border: 3px solid #fff;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: bold;
+      font-family: 'Press Start 2P', cursive;
+      transition: all 0.3s;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+    }
+
+    .btn-checkout:hover {
+      transform: scale(1.05);
+      box-shadow: 0 8px 25px rgba(37,211,102,0.6);
+    }
+
+    .btn-checkout:disabled {
+      background: #999;
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+
+    .overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(102,126,234,0.8);
+      display: none;
+      z-index: 1000;
+      backdrop-filter: blur(5px);
+    }
+
+    .overlay.active {
+      display: block;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #fff;
+      font-size: 24px;
+      font-family: 'Press Start 2P', cursive;
+      text-shadow: 2px 2px 0px #ff1493;
+      animation: blink 1s ease-in-out infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    @media (max-width: 600px) {
+      header h1 {
+        font-size: 14px;
+      }
+
+      header p {
+        font-size: 16px;
+      }
+
+      .primadona-title {
+        font-size: 14px;
+      }
+
+      .filter-btn {
+        font-size: 12px;
+        padding: 10px 15px;
+      }
+
+      .produk-grid,
+      .primadona-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+      }
+
+      .produk-image {
+        height: 130px;
+      }
+
+      .produk-nama {
+        font-size: 14px;
+      }
+
+      .produk-harga {
+        font-size: 16px;
+      }
+
+      .btn-add {
+        font-size: 11px;
+        padding: 8px;
+      }
+
+      .cart-header h2 {
+        font-size: 12px;
+      }
+
+      .option-title {
+        font-size: 10px;
+      }
+
+      .option-btn {
+        font-size: 14px;
+        padding: 8px;
+      }
+
+      .btn-checkout {
+        font-size: 12px;
+      }
+
+      .total {
+        font-size: 14px;
+      }
+
+      .cart-badge {
+        bottom: 15px;
+        right: 15px;
+        padding: 12px 15px;
+        font-size: 18px;
+      }
+    }
+
+    @media (max-width: 400px) {
+      .container {
+        padding: 10px;
+      }
+
+      header {
+        padding: 20px 12px;
+      }
+
+      header h1 {
+        font-size: 12px;
+      }
+
+      .filter-btn {
+        font-size: 10px;
+        padding: 8px 12px;
+      }
+
+      .option-group {
+        flex-direction: column;
+      }
+
+      .option-btn {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🧦 KaosKakiKu 🧦</h1>
+      <p>📍 Kota Lhokseumawe</p>
+    </header>
+
+    <div class="primadona-section">
+      <div class="primadona-title">❤️‍🔥 PRIMADONA ❤️‍🔥</div>
+      <div id="primadonaContainer" class="primadona-grid">
+        <div class="loading">Loading...</div>
+      </div>
+    </div>
+
+    <div class="filter-buttons">
+      <button class="filter-btn active" onclick="filterProduk('cowo')" data-filter="cowo">
+        👔 COWO
+      </button>
+      <button class="filter-btn" onclick="filterProduk('cewe')" data-filter="cewe">
+        👗 CEWE
+      </button>
+      <button class="filter-btn" onclick="filterProduk('hitam')" data-filter="hitam">
+        🖤 HITAM
+      </button>
+    </div>
+
+    <div class="cart-badge" id="cartBadge" onclick="toggleCart()">
+      🛒<span id="cartCount">0</span>
+    </div>
+
+    <div id="produkContainer" class="produk-grid">
+      <div class="loading">LOADING...</div>
+    </div>
+
+    <div class="cart-sidebar" id="cartSidebar">
+      <div class="cart-header">
+        <h2>🛒 KERANJANG</h2>
+        <button onclick="toggleCart()" class="close-btn">✕</button>
+      </div>
+      <div id="cartItems"></div>
+      <div class="cart-footer">
+        <div class="total">
+          <strong>TOTAL:</strong>
+          <span id="totalPrice">Rp 0</span>
+        </div>
+
+        <div class="checkout-options">
+          <div class="option-title">🚚 Mau dianter atau ambil sendiri nih?</div>
+          <div class="option-group">
+            <button class="option-btn active" onclick="setPengiriman('Ambil Sendiri')" data-pengiriman="ambil">
+              🏃 Ambil Sendiri
+            </button>
+            <button class="option-btn" onclick="setPengiriman('Antar')" data-pengiriman="antar">
+              🛵 Antar Dong!
+            </button>
+          </div>
+          <input type="text" id="alamatInput" class="alamat-input" placeholder="Tulis alamat lengkap kamu...">
+          <div id="infoAntar" class="info-box">
+            💡 Min. beli 3 pcs ya buat diantar! (Khusus area Lhokseumawe)
+          </div>
+        </div>
+
+        <div class="checkout-options" id="paymentSection" style="display: none;">
+          <div class="option-title">💰 Bayarnya pake apa nih?</div>
+          <div class="option-group">
+            <button class="option-btn active" onclick="setPembayaran('Transfer BSI')" data-payment="bsi">
+              🏦 Transfer BSI
+            </button>
+            <button class="option-btn" onclick="setPembayaran('DANA')" data-payment="dana">
+              💰 DANA
+            </button>
+          </div>
+          <div id="rekBSI" class="rekening-box show">
+            <strong>🏦 Bank BSI</strong><br>
+            👤 A.n Dava Nabila<br>
+            💳 7343207772
+          </div>
+          <div id="rekDANA" class="rekening-box">
+            <strong>💰 DANA</strong><br>
+            👤 A.n Aulia Zikfa<br>
+            📱 082294418076
+          </div>
+        </div>
+
+        <button onclick="checkout()" class="btn-checkout" id="btnCheckout">
+          📱 KIRIM PESANAN
+        </button>
+      </div>
+    </div>
+
+    <div class="overlay" id="overlay" onclick="toggleCart()"></div>
+  </div>
+
+  <script>
+    let cart = [];
+    let allProduk = [];
+    let currentFilter = 'cowo';
+    let selectedPengiriman = 'Ambil Sendiri';
+    let selectedPembayaran = 'Transfer BSI';
+
+    window.onload = function() {
+      google.script.run
+        .withSuccessHandler(displayProduk)
+        .withFailureHandler(showError)
+        .getProdukReady();
+    }
+
+    function displayProduk(produk) {
+      allProduk = produk;
+      
+      const primadona = produk.filter(p => p.primadona === true || p.primadona === "true").slice(0, 2);
+      const primadonaContainer = document.getElementById('primadonaContainer');
+      
+      if (primadona.length === 0) {
+        primadonaContainer.innerHTML = '<div class="loading" style="grid-column: 1/-1;">Belum ada produk primadona</div>';
+      } else {
+        primadonaContainer.innerHTML = primadona.map(item => createProductCard(item)).join('');
+      }
+      
+      renderProducts();
+    }
+
+    function renderProducts() {
+      const container = document.getElementById('produkContainer');
+      
+      const filteredProduk = allProduk.filter(p => {
+        const isPrimadona = p.primadona === true || p.primadona === "true";
+        if (currentFilter === 'hitam') {
+          return p.kategori === 'hitam' && !isPrimadona;
+        }
+        return p.kategori === currentFilter && !isPrimadona;
+      });
+      
+      if (filteredProduk.length === 0) {
+        container.innerHTML = '<div class="loading" style="grid-column: 1/-1;">Belum ada produk</div>';
+        return;
+      }
+      
+      container.innerHTML = filteredProduk.map(item => createProductCard(item)).join('');
+    }
+
+    function createProductCard(item) {
+      let kategoriColor = '#4169e1';
+      let kategoriLabel = '👔 COWO';
+      
+      if (item.kategori === 'cewe') {
+        kategoriColor = '#ff69b4';
+        kategoriLabel = '👗 CEWE';
+      } else if (item.kategori === 'hitam') {
+        kategoriColor = '#000000';
+        kategoriLabel = '🖤 HITAM';
+      }
+      
+      return \`
+        <div class="produk-card" data-kategori="\${item.kategori}">
+          <span class="produk-kategori" style="background:\${kategoriColor}">
+            \${kategoriLabel}
+          </span>
+          <img src="\${item.gambar || 'https://picsum.photos/280/220?random=' + item.id}" 
+               class="produk-image" 
+               alt="\${item.nama}"
+               onerror="this.src='https://picsum.photos/280/220?random=' + \${item.id}">
+          <div class="produk-info">
+            <div class="produk-nama">\${item.nama}</div>
+            <div class="produk-harga">Rp \${item.harga.toLocaleString()}</div>
+            <div class="produk-stok">📦 Stok: \${item.stok}</div>
+            <button class="btn-add" onclick="addToCart(\${item.id})">
+              + BELI
+            </button>
+          </div>
+        </div>
+      \`;
+    }
+
+    function filterProduk(kategori) {
+      currentFilter = kategori;
+      
+      document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.dataset.filter === kategori) {
+          btn.classList.add('active');
+        }
+      });
+      
+      renderProducts();
+    }
+
+    function addToCart(produkId) {
+      const produk = allProduk.find(p => p.id === produkId);
+      const existingItem = cart.find(item => item.id === produkId);
+      
+      if (existingItem) {
+        if (existingItem.qty < produk.stok) {
+          existingItem.qty++;
+        } else {
+          alert('⚠️ Stok tidak mencukupi!');
+          return;
+        }
+      } else {
+        cart.push({
+          id: produk.id,
+          nama: produk.nama,
+          harga: produk.harga,
+          qty: 1,
+          stok: produk.stok,
+          kategori: produk.kategori
+        });
+      }
+      
+      updateCart();
+      
+      const badge = document.getElementById('cartBadge');
+      badge.style.animation = 'none';
+      setTimeout(() => badge.style.animation = 'bounce 2s ease-in-out infinite', 10);
+    }
+
+    function updateCart() {
+      const cartCount = document.getElementById('cartCount');
+      const cartItems = document.getElementById('cartItems');
+      const totalPrice = document.getElementById('totalPrice');
+      
+      const totalItems = cart.reduce((sum, item) => sum + item.qty, 0);
+      cartCount.textContent = totalItems;
+      
+      if (cart.length === 0) {
+        cartItems.innerHTML = '<div style="text-align:center; padding:25px; color:#999; font-size:20px;">🛒 Keranjang Kosong</div>';
+      } else {
+        cartItems.innerHTML = cart.map(item => {
+          let kategoriColor = '#4169e1';
+          let kategoriLabel = '👔 COWO';
+          
+          if (item.kategori === 'cewe') {
+            kategoriColor = '#ff69b4';
+            kategoriLabel = '👗 CEWE';
+          } else if (item.kategori === 'hitam') {
+            kategoriColor = '#000000';
+            kategoriLabel = '🖤 HITAM';
+          }
+          
+          return \`
+            <div class="cart-item">
+              <div class="cart-item-name">\${item.nama}</div>
+              <div class="cart-item-kategori" style="background:\${kategoriColor}; color:#fff">
+                \${kategoriLabel}
+              </div>
+              <div style="color:#00ff00; font-weight:bold; font-size:18px; background:#000; padding:4px; border-radius:5px; display:inline-block;">
+                Rp \${item.harga.toLocaleString()}
+              </div>
+              <div class="cart-item-controls">
+                <button class="qty-btn" onclick="changeQty(\${item.id}, -1)">−</button>
+                <span style="font-size:20px; font-weight:bold;">\${item.qty}</span>
+                <button class="qty-btn" onclick="changeQty(\${item.id}, 1)">+</button>
+                <button class="qty-btn" onclick="removeFromCart(\${item.id})" 
+                        style="margin-left:auto; background:#ff1493; color:#fff;">🗑</button>
+              </div>
+              <div style="margin-top:8px; color:#666; font-size:16px; font-weight:bold;">
+                Subtotal: Rp \${(item.harga * item.qty).toLocaleString()}
+              </div>
+            </div>
+          \`;
+        }).join('');
+      }
+      
+      const total = cart.reduce((sum, item) => sum + (item.harga * item.qty), 0);
+      totalPrice.textContent = \`Rp \${total.toLocaleString()}\`;
+      
+      // Check if antar is allowed
+      checkAntarEligibility();
+    }
+
+        function setPengiriman(jenis) {
+      selectedPengiriman = jenis;
+      
+      document.querySelectorAll('[data-pengiriman]').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      
+      event.target.classList.add('active');
+      
+      const alamatInput = document.getElementById('alamatInput');
+      const infoAntar = document.getElementById('infoAntar');
+      const paymentSection = document.getElementById('paymentSection');
+      
+      if (jenis === 'Antar') {
+        alamatInput.classList.add('show');
+        infoAntar.classList.add('show');
+        paymentSection.style.display = 'block'; // Tampilkan metode pembayaran
+      } else {
+        alamatInput.classList.remove('show');
+        infoAntar.classList.remove('show');
+        paymentSection.style.display = 'none'; // Sembunyikan metode pembayaran
+      }
+      
+      checkAntarEligibility();
+    }
+
+    function setPembayaran(metode) {
+      selectedPembayaran = metode;
+      
+      document.querySelectorAll('[data-payment]').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      
+      event.target.classList.add('active');
+      
+      const rekBSI = document.getElementById('rekBSI');
+      const rekDANA = document.getElementById('rekDANA');
+      
+      if (metode === 'Transfer BSI') {
+        rekBSI.classList.add('show');
+        rekDANA.classList.remove('show');
+      } else {
+        rekBSI.classList.remove('show');
+        rekDANA.classList.add('show');
+      }
+    }
+
+    function checkAntarEligibility() {
+      const totalItems = cart.reduce((sum, item) => sum + item.qty, 0);
+      const btnCheckout = document.getElementById('btnCheckout');
+      
+      if (selectedPengiriman === 'Antar' && totalItems < 3) {
+        btnCheckout.disabled = true;
+        btnCheckout.textContent = '❌ Min. 3 pcs buat diantar!';
+      } else {
+        btnCheckout.disabled = false;
+        btnCheckout.textContent = '📱 KIRIM PESANAN';
+      }
+    }
+
+    function changeQty(produkId, change) {
+      const item = cart.find(i => i.id === produkId);
+      item.qty += change;
+      
+      if (item.qty <= 0) {
+        removeFromCart(produkId);
+      } else if (item.qty > item.stok) {
+        alert('⚠️ Stok tidak mencukupi!');
+        item.qty = item.stok;
+      }
+      
+      updateCart();
+    }
+
+    function removeFromCart(produkId) {
+      cart = cart.filter(item => item.id !== produkId);
+      updateCart();
+    }
+
+    function toggleCart() {
+      const sidebar = document.getElementById('cartSidebar');
+      const overlay = document.getElementById('overlay');
+      
+      sidebar.classList.toggle('active');
+      overlay.classList.toggle('active');
+    }
+
+    function checkout() {
+      if (cart.length === 0) {
+        alert('🛒 Keranjang masih kosong!');
+        return;
+      }
+
+      const totalItems = cart.reduce((sum, item) => sum + item.qty, 0);
+      
+      if (selectedPengiriman === 'Antar' && totalItems < 3) {
+        alert('⚠️ Minimal 3 pcs ya buat diantar! Atau pilih "Ambil Sendiri" aja 😊');
+        return;
+      }
+
+      let alamat = '';
+      if (selectedPengiriman === 'Antar') {
+        alamat = document.getElementById('alamatInput').value.trim();
+        if (!alamat) {
+          alert('⚠️ Alamat belum diisi nih! Mau diantar kemana? 😊');
+          return;
+        }
+      }
+      
+      const orderData = {
+        items: cart,
+        pengiriman: selectedPengiriman,
+        pembayaran: selectedPembayaran,
+        alamat: alamat
+      };
+      
+      google.script.run
+        .withSuccessHandler(function(waLink) {
+          window.open(waLink, '_blank');
+          cart = [];
+          updateCart();
+          toggleCart();
+          
+          // Reset form
+          document.getElementById('alamatInput').value = '';
+          setPengiriman('Ambil Sendiri');
+          setPembayaran('Transfer BSI');
+        })
+        .getWhatsAppLink(orderData);
+    }
+
+    function showError(error) {
+      console.error(error);
+      document.getElementById('produkContainer').innerHTML = 
+        '<div class="loading" style="color:#ff1493; grid-column: 1/-1;">ERROR: ' + error.message + '</div>';
+    }
+  </script>
+</body>
+</html>
